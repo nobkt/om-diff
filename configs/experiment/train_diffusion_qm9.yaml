@@ -1,0 +1,68 @@
+# @package _global_
+
+# to execute this experiment run:
+
+defaults:
+  - override /data: ase.yaml
+  - override /model: diffusion.yaml
+  - override /callbacks: default.yaml
+  - override /logger: wandb.yaml
+  - override /trainer: gpu.yaml
+
+# all parameters below will be merged with parameters from default configurations set above
+# this allows you to overwrite only specified parameters
+
+tags: [ "om-diff", "qm9" ]
+
+seed: 42
+
+mode: "organic" # or "organometallic"
+
+trainer:
+  min_epochs: 10000
+  max_epochs: -1
+  deterministic: false
+  detect_anomaly: true
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 4
+
+data:
+  db_path: /home/modules/src/ase_dp/gdb9.db
+  batch_size: 32
+
+model:
+  denoising_net:
+    input_modules:
+      one_hot:
+        num_embeddings: 5
+
+    backbone:
+      rbf_layer:
+        max_distance: 5.0
+
+    output_modules:
+      readout:
+        net:
+          input_dim: 256
+          output_dim: 5
+          hidden_dim: 256
+
+  diffusion_hp:
+    val_sample_every: 500
+    num_val_samples: 250
+    sampling_batch_size: 50
+    num_final_samples: 1000
+    yield_final_samples_every: 10
+    scale_positions: 1.0
+
+  noise_model:
+    shape_mapping:
+      node_features: [ 5 ]
+
+  connectivity_module:
+    cutoff: 5.0
+
+logger:
+  wandb:
+    tags: ${tags}
+    group: "qm9"
