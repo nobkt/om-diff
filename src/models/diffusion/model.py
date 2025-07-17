@@ -126,7 +126,7 @@ class ConditionalEmpiricalCountDistribution(nn.Module):
     def from_counter(cls, z_counter: dict[int, int], x_given_z_counter: dict[int, dict[int, int]]):
         z_labels = torch.tensor(list(z_counter.keys()), dtype=torch.long)
         z_counts = torch.tensor(list(z_counter.values()), dtype=torch.long)
-
+        
         x_labels = torch.tensor(
             list(set.union(*[set(x_given_z_counter[z].keys()) for z in x_given_z_counter])),
             dtype=torch.long,
@@ -258,9 +258,10 @@ class OMDiff(nn.Module):
             dataset: BaseDataset,
             connectivity_module: Optional[Union[Connectivity, Callable[[Batch], Batch]]] = None,
             masked_node_labels: Optional[set[int]] = None,
+            mode: Optional[str] = None,  # 追加
     ):
         num_nodes_distribution, node_labels, masked_node_labels = cls.get_num_nodes_distribution(
-            dataset=dataset, masked_node_labels=masked_node_labels
+            dataset=dataset, masked_node_labels=masked_node_labels, mode=mode  # 追加
         )
 
         return cls(
@@ -276,11 +277,20 @@ class OMDiff(nn.Module):
     def get_num_nodes_distribution(
             dataset: BaseDataset,
             masked_node_labels: Optional[set[int]] = None,
+            mode: Optional[str] = None,  # 追加
     ):
+        import sys
         node_labels = dataset.node_labels
 
+        # ここでmodeによる分岐
         if masked_node_labels is None:
-            masked_node_labels = [n for n in METAL_CENTER_NUMBERS if n in node_labels]
+            if mode == "organic":
+                masked_node_labels = list(set(node_labels))
+            else:
+                masked_node_labels = [n for n in METAL_CENTER_NUMBERS if n in node_labels]
+
+        #if masked_node_labels is None:
+        #    masked_node_labels = [n for n in METAL_CENTER_NUMBERS if n in node_labels]
 
         z_counter, x_given_z_counter = dataset.conditional_node_count
         # filter and keep only metal centers

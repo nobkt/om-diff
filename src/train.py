@@ -37,12 +37,15 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
     if cfg.get("seed"):
         L.seed_everything(cfg.seed, workers=True)
 
+    mode = cfg.get("mode", "organometallic")
+    log.info(f"Running in '{mode}' mode.")
+
     log.info(f"Instantiating datamodule <{cfg.data._target_}>")
     datamodule: BaseDataModule = hydra.utils.instantiate(cfg.data)
     datamodule.setup(stage="train")
 
     log.info(f"Instantiating model <{cfg.model._target_}>")
-    model: BaseLitModule = hydra.utils.instantiate(cfg.model, dm=datamodule)
+    model: BaseLitModule = hydra.utils.instantiate(cfg.model, dm=datamodule, mode=mode)
 
     log.info("Instantiating callbacks...")
     callbacks: List[Callback] = utils.instantiate_callbacks(cfg.get("callbacks"))

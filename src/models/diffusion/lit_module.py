@@ -192,6 +192,7 @@ class OMDiffLitModule(DiffLitModule):
             connectivity_module: Optional[Union[Connectivity, Callable[[Batch], Batch]]] = None,
             scheduler: torch.optim.lr_scheduler = None,
             dm: BaseDataModule = None,
+            mode: Optional[str] = None,  # 追加
     ):
         super().__init__(
             train_loss_module=train_loss_module,
@@ -211,14 +212,18 @@ class OMDiffLitModule(DiffLitModule):
                 "connectivity_module",
                 "sampler",
                 "dm",
+                "mode",
             ]
         )
+        
+        self.mode = mode
 
         self.om_diff: OMDiff = OMDiff.from_data(
             denoising_net=denoising_net,
             noise_model=noise_model,
             dataset=dm.dataset,
             connectivity_module=connectivity_module,
+            mode=mode,
         )
         self.sampler = sampler
 
