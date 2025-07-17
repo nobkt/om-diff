@@ -9,10 +9,10 @@ transform_compose:
   _target_: src.data.components.transforms.base.Compose
   row_to_atoms:
     _target_: src.data.components.transforms.ase.AtomsRowToAtomsDataTransform
-    extract_properties: ???
+    extract_properties: []
   one_hot:
     _target_: src.data.components.transforms.data.CollapsedOneHotNodeFeaturesTransform
-    node_labels: ???
+    node_labels: [1,6,7,8,9]
   add_edges:
     _target_: src.data.components.transforms.data.AddFullyConnectedEdgesTransform
     keep_loops: false

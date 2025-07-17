@@ -39,6 +39,11 @@ model:
     backbone:
       rbf_layer:
         max_distance: 5.0
+      
+      hparams:
+        with_edge_interactions: true
+        update_node_positions: True
+
 
     output_modules:
       readout:
