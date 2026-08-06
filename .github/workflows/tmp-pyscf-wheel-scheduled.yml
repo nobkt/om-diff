@@ -1,0 +1,74 @@
+name: Temporary scheduled PySCF wheel fetch
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  fetch-wheel:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check whether artifact metadata already exists
+        id: guard
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --heads origin refs/heads/tmp/pyscf-artifact-ready >/dev/null 2>&1; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.guard.outputs.ready == 'false'
+        with:
+          python-version: '3.13'
+      - name: Download official PySCF wheel
+        if: steps.guard.outputs.ready == 'false'
+        run: |
+          python -m pip install --upgrade pip
+          mkdir -p wheelhouse
+          python -m pip download --only-binary=:all: --no-deps pyscf==2.14.0 -d wheelhouse
+          python -m pip download --only-binary=:all: --no-deps geometric -d wheelhouse || true
+          sha256sum wheelhouse/* | tee wheelhouse/SHA256SUMS
+      - name: Upload wheelhouse
+        if: steps.guard.outputs.ready == 'false'
+        id: upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyscf-wheelhouse-py313-linux-x86_64
+          path: wheelhouse/
+          if-no-files-found: error
+          retention-days: 1
+      - name: Publish artifact metadata to temporary branch
+        if: steps.guard.outputs.ready == 'false'
+        env:
+          ARTIFACT_ID: ${{ steps.upload.outputs.artifact-id }}
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: |
+          tmpdir=$(mktemp -d)
+          cd "$tmpdir"
+          git init
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          cat > pyscf-artifact.json <<EOF
+          {
+            "run_id": "${GITHUB_RUN_ID}",
+            "artifact_id": "${ARTIFACT_ID}",
+            "artifact_url": "${ARTIFACT_URL}",
+            "source_commit": "${GITHUB_SHA}",
+            "pyscf_version": "2.14.0"
+          }
+          EOF
+          git add pyscf-artifact.json
+          git commit -m 'Record temporary PySCF wheel artifact'
+          git branch -M tmp/pyscf-artifact-ready
+          git push --force origin tmp/pyscf-artifact-ready
