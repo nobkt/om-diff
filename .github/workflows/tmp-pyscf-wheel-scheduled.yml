@@ -17,6 +17,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Publish schedule heartbeat
+        run: git push --force origin HEAD:refs/heads/tmp/pyscf-schedule-heartbeat
       - name: Check whether artifact metadata already exists
         id: guard
         shell: bash
